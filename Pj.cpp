@@ -169,6 +169,49 @@ int BuscaSentinelaCodigo(int code,FILE *PtrCompra){
 	}
 }
 
+int BuscaCompraComCodigoLivro(int code, FILE *PtrCompra){
+	int count=0;
+	TpCompra dados;
+	rewind(PtrCompra);
+	
+	fread(&dados,sizeof(TpCompra),1,PtrCompra);
+	while(!feof(PtrCompra)){
+		if(dados.codeLivro == code){
+			count++;
+		}
+		fread(&dados,sizeof(TpCompra),1,PtrCompra);
+	}
+	
+	if(count == 0){
+		return -1;
+	}
+	else{
+		return count;
+	}
+	
+}
+
+int BuscaLivroComNomeAutor(char nome[50], FILE *PtrL){
+	int count=0;
+	TpLivro dados;
+	rewind(PtrL);
+	
+	fread(&dados,sizeof(TpLivro),1,PtrL);
+	while(!feof(PtrL)){
+		if(strcmp(dados.nomeAutor,nome) == 0){
+			count++;
+		}
+		fread(&dados,sizeof(TpLivro),1,PtrL);
+	}
+	
+	if(count == 0){
+		return -1;
+	}
+	else{
+		return count;
+	}
+}
+
 ///////////////////////////////////////////////////// Ordenacos ////////////////////////////////////////////////////////////
 
 void insercaoDireta(FILE *PtrLivro){
@@ -611,23 +654,121 @@ void EdLivro(void){
 	fclose(PtrAutor);
 }
 
-void EdAutor(void){
-
-	system("cls");
-	printf("*********************** EDITAR AUTORES ***************************\n\n");	
-}
-
 void EdCliente(void){
+	int pos;
+	char cpf[15];
+	TpCliente dados;
+	
+	FILE *PtrCliente = fopen("Clientes.dat","rb+");
 	
 	system("cls");
-	printf("*********************** EDITAR CLIENTES ***************************\n\n");
+	printf("*********************** EDITAR CLIENTE ***************************\n\n");
 	
+	printf("Digite o cpf do cliente:\n");
+	fflush(stdin);
+	gets(cpf);
+	
+	pos = BuscaSequencialCPF(cpf,PtrCliente);
+	
+	if(pos == -1){
+		system("cls");
+		printf("Cliente nao encontrado!\n");
+		Sleep(2000);
+	}
+	else{
+		
+		fseek(PtrCliente, pos*sizeof(TpCliente),0);
+		fread(&dados,sizeof(TpCliente),1,PtrCliente);
+		
+		printf("Digite a nova idade:\n");
+		scanf("%d",&dados.idade);
+		
+		printf("Digite o nome:\n");
+		scanf("%d",&dados.nomeC);
+		
+		fseek(PtrCliente, pos*sizeof(TpCliente),0);
+		fwrite(&dados,sizeof(TpCliente),1,PtrCliente);
+		
+		system("cls");
+		printf("Cliente editado com sucesso!\n");
+		Sleep(2000);
+	}
+	
+	fclose(PtrCliente);
 }
 
 void EdCompra(void){
+	TpCompra dados;
+	int code,pos,pos1,pos2,codeL;
+	char cpf[15];
+	
+	FILE *PtrCompra = fopen("Compras.dat","rb+");
+	FILE *PtrCliente = fopen("Clientes.dat","rb+");
+	FILE *PtrLivro = fopen("Livros.dat","rb+");
 	
 	system("cls");
 	printf("*********************** EDITAR COMPRAS ***************************\n\n");
+	
+	printf("Digite o codigo da compra:\n");
+	scanf("%d",&code);
+	
+	pos = BuscaSentinelaCodigo(code,PtrCompra);
+	
+	if(pos == -1){
+		system("cls");
+		printf("Compra nao encontrada!\n");
+		Sleep(2000);
+	}
+	else{
+		printf("Digite o codigo do livro:\n");
+		scanf("%d",&codeL);
+		
+		pos1 = BuscaBinariaCodeLivro(codeL,PtrLivro);
+		
+		if(pos1 == -1){
+			system("cls");
+			printf("Livro nao encontrado!\n");
+			Sleep(2000);
+		}
+		else{
+			printf("Digite o cpf do cliente:\n");
+			fflush(stdin);
+			gets(cpf);
+			
+			pos2 = BuscaSequencialCPF(cpf,PtrCliente);
+			
+			if(pos2 == -1){
+				system("cls");
+				printf("Cliente nao encontrado!\n");
+				Sleep(2000);
+			}
+			else{
+				printf("Digite dia da aquisicao [DD]:\n");
+				scanf("%d",&dados.dataAquisicao.dia);
+				printf("Digite mes da aquisicao [MM]:\n");
+				scanf("%d",&dados.dataAquisicao.mes);
+				printf("Digite ano da aquisicao [AAAA]:\n");
+				scanf("%d",&dados.dataAquisicao.ano);
+				
+				printf("Digite a quantidade de copias compradas:\n");
+				scanf("%d", &dados.qtdeCopiasC);
+				
+				dados.codeLivro = codeL;
+				strcpy(dados.cpfCliente,cpf);
+				
+				fseek(PtrCompra,pos*sizeof(TpCliente),0);
+				fwrite(&dados,sizeof(TpCompra),1,PtrCompra);
+				
+				system("cls");
+				printf("Compra alterada com sucesso!\n");
+				Sleep(2000);
+			}	
+		}
+	}
+	
+	fclose(PtrCompra);
+	fclose(PtrCliente);
+	fclose(PtrLivro);
 }
 
 char MenuEd(void){
@@ -635,9 +776,8 @@ char MenuEd(void){
 	
 	printf("***************** EDITAR ********************\n\n");
 	printf("[A] Editar livro\n");
-	printf("[B] Editar autor do livro\n");
-	printf("[C] Editar cliente\n");
-	printf("[D] Editar compra\n");
+	printf("[B] Editar cliente\n");
+	printf("[C] Editar compra\n");
 	printf("[ESC] Voltar ao menu\n");
 	
 	return opc = getch();
@@ -651,11 +791,9 @@ void Editar(){
 		switch(toupper(opc)){
 			case 'A': EdLivro();
 			break;
-			case 'B': EdAutor();
+			case 'B': EdCliente();
 			break;
-			case 'C': EdCliente();
-			break;
-			case 'D': EdCompra();
+			case 'C': EdCompra();
 			break;
 			default: system("cls");
 			break;
@@ -664,11 +802,103 @@ void Editar(){
 }
 
 void ExcLivro(void){
+	TpLivro dados;
+	int pos,code,valid;
 	
+	FILE *PtrLivro = fopen("Livros.dat","rb+");
+	FILE *PtrCompra = fopen("Compras.dat","rb+");
+	
+	system("cls");
+	printf("************************** EXCLUIR LIVRO ******************************\n\n");
+	
+	printf("Digite o codigo do livro que deseja excluir:\n");
+	scanf("%d", &code);
+	
+	pos = BuscaBinariaCodeLivro(code,PtrLivro);
+	
+	if(pos == -1){
+		system("cls");
+		printf("Livro nao encontrado!\n");
+		Sleep(2000);
+	}
+	else{
+		valid = BuscaCompraComCodigoLivro(code,PtrCompra);
+		
+		if(valid == -1){
+			
+			fseek(PtrLivro, pos*sizeof(TpLivro),0);
+			fread(&dados,sizeof(TpLivro),1,PtrLivro);
+			
+			dados.statusL = 'I';
+			
+			fseek(PtrLivro, pos*sizeof(TpLivro),0);
+			fwrite(&dados,sizeof(TpLivro),1,PtrLivro);
+			
+			system("cls");
+			printf("Livro excluido com sucesso!\n");
+			Sleep(2000);
+		}
+		else{
+			system("cls");
+			printf("Voce nao pode excluir livros que possuem compras cadastradas!\n");
+			Sleep(2000);
+		}
+		
+	}
+	
+	fclose(PtrCompra);
+	fclose(PtrLivro);
 }
 
 void ExcAutor(void){
+	TpAutor dados;
+	int pos,valid;
+	char nome[50];
 	
+	FILE *PtrA = fopen("Autores.dat","rb+");
+	FILE *PtrL = fopen("Livros.dat","rb+");
+	
+	system("cls");
+	printf("************************** EXCLUIR AUTOR ******************************\n\n");
+	
+	printf("Digite o nome do autor que deseja excluir:\n");
+	fflush(stdin);
+	gets(nome);
+	
+	pos = BuscaExaustivaNomeAutor(nome,PtrA);
+	
+	if(pos == -1){
+		system("cls");
+		printf("Autor nao encontrado!\n");
+		Sleep(2000);
+	}
+	else{
+		valid = BuscaLivroComNomeAutor(nome,PtrL);
+		
+		if(valid == -1){
+			
+			fseek(PtrA, pos*sizeof(TpAutor),0);
+			fread(&dados,sizeof(TpAutor),1,PtrA);
+			
+			dados.statusA = 'I';
+			
+			fseek(PtrA, pos*sizeof(TpAutor),0);
+			fwrite(&dados,sizeof(TpAutor),1,PtrA);
+			
+			system("cls");
+			printf("Autor excluido com sucesso!\n");
+			Sleep(2000);
+		}
+		else{
+			system("cls");
+			printf("Voce nao pode excluir um autor que possui livros cadastrados!\n");
+			Sleep(2000);
+		}
+		
+	}
+	
+	fclose(PtrA);
+	fclose(PtrL);
 }
 
 void ExcCliente(void){
@@ -806,7 +1036,8 @@ char Menu(void){
 	printf("[B] Editar\n");
 	printf("[C] Excluir\n");
 	printf("[D] Relatorios\n");
-	printf("[ESC] Finalizar\n");
+	printf("[ESC] Finalizar\n\n");
+	printf("****************************************************\n\n");
 	return opc = getch();
 }
 
